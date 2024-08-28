@@ -434,6 +434,38 @@ theorem bitwise_lt_two_pow (left : x < 2^n) (right : y < 2^n) : (Nat.bitwise f x
       case neg =>
         apply Nat.add_lt_add <;> exact hyp1
 
+theorem bitwise_div_two (f : Bool → Bool → Bool) (x y : Nat) :
+    bitwise f x y / 2 = bitwise f (x / 2) (y / 2) := by
+  induction x, y using bitwise.induct f with
+  | case1 x | case2 y | case4 x => simp [bitwise, *]
+  | case3 x => by_cases x / 2 = 0 <;> simp [bitwise, *]
+  | case5 x y | case6 x y =>
+    conv => lhs; unfold bitwise; simp [*]
+    omega
+
+theorem bitwise_mod_two (f : Bool → Bool → Bool) (h : f false false = false) (x y : Nat) :
+    bitwise f x y % 2 = (f (decide $ x % 2 = 1) (decide $ y % 2 = 1)).toNat := by
+  induction x, y using bitwise.induct f with
+  | case1 x | case2 x | case3 x | case4 x =>
+    have : x % 2 = 0 ∨ x % 2 = 1 := by omega
+    cases this <;> simp [bitwise, *]
+  | case5 x y | case6 x y => unfold bitwise; simp [*]; omega
+
+@[simp] theorem bitwise_zero_left (f : Bool → Bool → Bool) (y : Nat) :
+    bitwise f 0 y = if f false true = true then y else 0 := by simp [bitwise]
+
+@[simp] theorem bitwise_zero_right (f : Bool → Bool → Bool) (x : Nat) :
+    bitwise f x 0 = if x = 0 then 0 else if f true false = true then x else 0 := by simp [bitwise]
+
+theorem two_mul_bitwise (f : Bool → Bool → Bool) (h : f false false = false) :
+    ∀ x y, 2 * bitwise f x y = bitwise f (2 * x) (2 * y)
+  | 0, 0 => by simp
+  | x + 1, 0 => by by_cases f true false = true <;> simp_arith [*]
+  | 0, y + 1 => by by_cases f false true = true <;> simp [*]
+  | x + 1, y + 1 => by
+    conv => rhs; unfold bitwise
+    simp_arith [*]
+
 /-! ### and -/
 
 @[simp] theorem testBit_and (x y i : Nat) : (x &&& y).testBit i = (x.testBit i && y.testBit i) := by
